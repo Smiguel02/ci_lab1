@@ -116,8 +116,6 @@ int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, un
 		return -1;
 	}
 
-	// TODO: verify size of data received with expected data
-
 	// Receive request, first we receive MBAP, then we go fot the Data
 	// Reads what we want
 	len = read_buffer(socket_fd, APDU_R, 6);

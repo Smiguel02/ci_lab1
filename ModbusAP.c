@@ -14,7 +14,7 @@ int verify_connection(char *server_ip, int port, int st_r)
 		return -1;
 	}
 
-	if ((st_r < 1) || (st_r > MAX_ADDRESS_NUMBER))
+	if ((st_r < 0) || (st_r > 0xffff))
 	{
 		printf("ERROR, Invalid address.\n");
 		return -1;
@@ -24,6 +24,7 @@ int verify_connection(char *server_ip, int port, int st_r)
 
 int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigned short *val)
 {
+	st_r--;
 	if (verify_connection(server_ip, port, st_r) < 0)
 	{
 		return -1;
@@ -75,7 +76,7 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 	}
 
 	// verify received values
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < (expected_response_size - 7); i++)
 	{
 		if (APDU_R[i] != APDU[i])
 		{
@@ -84,7 +85,7 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 		}
 	}
 
-	if (i == 5)
+	if (i == (expected_response_size - 7))
 	{
 		printf("!!Successfully wrote desired Registers!!\n");
 		return n_r;
@@ -92,18 +93,23 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 
 	if (i == 0 && (APDU_R[0] == (APDU[0] + 0X80)))
 	{
-		printf("We got and exception\n");
+		printf("We got an exception\n");
 
 		switch (APDU_R[1])
 		{
 		case 1:
-			printf("ILLEGAL FUNCTIONEXCEPTION\n");
-			break;
-		}
-		// TODO: acabar de escrever isto
-	}
+			printf("ILLEGAL FUNCTION EXCEPTION\n");
+			return -1;
 
-	// FIXME: o que fazer quando recebemos exceções??
+		case 2:
+			printf("ILEEGAL DATA ADDRESS\n");
+			return -1;
+
+		case 3:
+			printf("ILLEGAL DATA VALUE\n");
+			return -1;
+		}
+	}
 
 	printf("ERROR, data received didn't match the expected\n");
 	return -1;
@@ -141,7 +147,45 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 		return -1;
 	}
 
-	printf("Muy bien coño\n");
+	printf("Muy bien coño, let's verify now\n");
+
+	for (i = 0; i < (expected_response_size - 7); i++)
+	{
+		if (APDU_R[i] != APDU[i])
+		{
+			printf("Values don't match\n");
+			break;
+		}
+	}
+
+	if (i == (expected_response_size - 7))
+	{
+		printf("!!Successfully read desired Registers!!\n");
+		return n_r;
+	}
+
+	if (i == 0 && (APDU_R[0] == (APDU[0] + 0X80)))
+	{
+		printf("We got an exception\n");
+
+		switch (APDU_R[1])
+		{
+		case 1:
+			printf("ILLEGAL FUNCTION EXCEPTION\n");
+			return -1;
+
+		case 2:
+			printf("ILEEGAL DATA ADDRESS\n");
+			return -1;
+
+		case 3:
+			printf("ILLEGAL DATA VALUE\n");
+			return -1;
+		}
+	}
+
+	printf("ERROR, data received didn't match the expected\n");
+	return -1;
 
 	return 1;
 }
