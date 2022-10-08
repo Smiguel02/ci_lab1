@@ -87,12 +87,6 @@ int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, un
 		MBAP[7 + i] = APDU[i];
 	}
 
-	// Verification stuff, works :like:
-	for (int i = 0; i < MBAP_size; i++)
-	{
-		printf("MBAPDU[%d]=%u\n", i, MBAP[i]);
-	}
-
 	// Initialize server connection
 	int socket_fd;
 
@@ -134,10 +128,10 @@ int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, un
 	}
 
 	// I have a pressentimento que isto não vai dar
-	int data_lenght = (int)(APDU_R[4] << 8) + (int)APDU_R[5];
+	int data_lenght = (int)(APDU_R[4] << 8) + (int)(APDU_R[5] & 0xff);
 
 	len = 0;
-	len = read_buffer(socket_fd, APDU_R, data_lenght);
+	len = read_buffer(socket_fd, &APDU_R[6], data_lenght);
 	if (len != data_lenght)
 	{
 		return -1;
@@ -148,8 +142,14 @@ int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, un
 		printf("APDU_R[%d]=%u\n", i, APDU_R[i]);
 	}
 
-	// After we successfully received data, we just need to send APDU_R back, no Header
-	APDU_R = &APDU_R[7]; // Muda o endereço de APDU_R mais para a frente
+	// Just complicating here, should ahve used a buffer and then give the values to APDU_R
+	// Now as I don't know how to use string functions, I will use a loop :/
+	// This works now
+	for (int i = 0; i < (data_lenght - 1); i++)
+	{
+		APDU_R[i] = APDU_R[i + 7];
+		printf("APDU_R[%i]=%u\n", i, APDU_R[i]);
+	}
 
 	// close socket
 	close(socket_fd);

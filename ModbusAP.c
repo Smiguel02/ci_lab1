@@ -78,6 +78,8 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 	// verify received values
 	for (i = 0; i < (expected_response_size - 7); i++)
 	{
+		printf("APDU_R[%d]=%u && APDU[%d]=%u\n", i, APDU_R[i], i, APDU[i]);
+
 		if (APDU_R[i] != APDU[i])
 		{
 			printf("Values don't match\n");
@@ -118,6 +120,7 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 // Seems to work
 int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigned short *val)
 {
+	st_r--;
 	if (verify_connection(server_ip, port, st_r) < 0)
 	{
 		return -1;
@@ -141,6 +144,11 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 	int expected_response_size = 7 + 2 + (n_r * sizeof(unsigned short));
 	char APDU_R[expected_response_size];
 
+	for (i = 0; i < APDU_H_REG_SIZE; i++)
+	{
+		printf("APDU[%d]=%u\n", i, APDU[i]);
+	}
+
 	if (Send_Modbus_request(server_ip, port, APDU, APDU_H_REG_SIZE, APDU_R) < 0)
 	{
 		printf("Something went wrong\n");
@@ -149,43 +157,45 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 
 	printf("Muy bien coño, let's verify now\n");
 
-	for (i = 0; i < (expected_response_size - 7); i++)
+	if (APDU_R[0] != APDU[0])
 	{
-		if (APDU_R[i] != APDU[i])
+		printf("Function codes don't match\n");
+		if (APDU_R[0] == (APDU[0] + 0X80))
 		{
-			printf("Values don't match\n");
-			break;
+			switch (APDU_R[1])
+			{
+			case 1:
+				printf("ILLEGAL FUNCTION EXCEPTION\n");
+				return -1;
+
+			case 2:
+				printf("ILEEGAL DATA ADDRESS\n");
+				return -1;
+
+			case 3:
+				printf("ILLEGAL DATA VALUE\n");
+				return -1;
+			}
 		}
-	}
-
-	if (i == (expected_response_size - 7))
-	{
-		printf("!!Successfully read desired Registers!!\n");
-		return n_r;
-	}
-
-	if (i == 0 && (APDU_R[0] == (APDU[0] + 0X80)))
-	{
-		printf("We got an exception\n");
-
-		switch (APDU_R[1])
+		else
 		{
-		case 1:
-			printf("ILLEGAL FUNCTION EXCEPTION\n");
-			return -1;
-
-		case 2:
-			printf("ILEEGAL DATA ADDRESS\n");
-			return -1;
-
-		case 3:
-			printf("ILLEGAL DATA VALUE\n");
+			printf("ERROR, data received didn't match the expected\n");
 			return -1;
 		}
 	}
 
-	printf("ERROR, data received didn't match the expected\n");
-	return -1;
+	// This convertion isn't workin and makes no senseeee
+	// I had to do an AND idk why, I guess there is more bites that we don't understand somewhere in there
+	//  val[(int)(i / 2)] = ((int)APDU_R[2 + i] * 256) + APDU_R[3 + i];
+
+	for (i = 0; i < (int)(APDU_R[1]); i += 2)
+	{
+		val[(int)(i / 2)] = ((unsigned short)APDU_R[2 + i] << 8) + (APDU_R[3 + i] & 0xff);
+		printf("val[%d]=%d\n", (int)(i / 2), val[(int)(i / 2)]);
+	}
+	printf("!!Successfully Read registers!!\n");
+
+	return n_r;
 
 	return 1;
 }
