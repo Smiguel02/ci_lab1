@@ -93,11 +93,11 @@ int Write_multiple_regs(char *server_ip, int port, int st_r, unsigned short n_r,
 		return n_r;
 	}
 
-	if (i == 0 && (APDU_R[0] == (APDU[0] + 0X80)))
+	if (i == 0 && ((APDU_R[0] & 0xff) == ((APDU[0] & 0xff) + 0X80)))
 	{
 		printf("We got an exception\n");
 
-		switch (APDU_R[1])
+		switch (APDU_R[1] & 0xff)
 		{
 		case 1:
 			printf("ILLEGAL FUNCTION EXCEPTION\n");
@@ -159,10 +159,10 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 
 	if (APDU_R[0] != APDU[0])
 	{
-		printf("Function codes don't match\n");
-		if (APDU_R[0] == (APDU[0] + 0X80))
+		printf("Function codes don't match->%d\n", (APDU[0] & 0xff) + 128);
+		if ((APDU_R[0] & 0xff) == ((APDU[0] & 0xff) + 128))
 		{
-			switch (APDU_R[1])
+			switch ((APDU_R[1] & 0xff))
 			{
 			case 1:
 				printf("ILLEGAL FUNCTION EXCEPTION\n");
@@ -186,7 +186,6 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 
 	// This convertion isn't workin and makes no senseeee
 	// I had to do an AND idk why, I guess there is more bites that we don't understand somewhere in there
-	//  val[(int)(i / 2)] = ((int)APDU_R[2 + i] * 256) + APDU_R[3 + i];
 
 	for (i = 0; i < (int)(APDU_R[1]); i += 2)
 	{
@@ -196,6 +195,4 @@ int Read_h_regs(char *server_ip, int port, int st_r, unsigned short n_r, unsigne
 	printf("!!Successfully Read registers!!\n");
 
 	return n_r;
-
-	return 1;
 }

@@ -79,7 +79,7 @@ int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, un
 	MBAP[3] = 0;									 // Modbus protocol Identifier, always 0
 	MBAP[4] = (unsigned char)((APDUlen + 1) >> 8);	 // High byte rest of the packet lenght
 	MBAP[5] = (unsigned char)((APDUlen + 1) & 0xff); // Low byte rest of the packet lenght
-	MBAP[6] = 0xff;									 // Might need to change this one later
+	MBAP[6] = UNIT_ID;								 // Might need to change this one later
 
 	// Kids, don't use strcat()
 	for (int i = 0; i < APDUlen; i++)

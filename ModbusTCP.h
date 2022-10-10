@@ -6,4 +6,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#define UNIT_ID 0XFF
+
 int Send_Modbus_request(char *ip, int port, unsigned char *APDU, int APDUlen, unsigned char *APDU_R);
